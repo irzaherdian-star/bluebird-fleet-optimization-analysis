@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    :root{--navy:#0b2e59;--blue:#1f6fb2;--sky:#a9cbeb;--yellow:#f2b705;--red:#d64545;--bg:#f3f6fa;--ink:#17324d;--muted:#6b7c93;--white:#fff;--line:#e4eaf1}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(--ink)}
+    .top{background:linear-gradient(115deg,#09274c,#145b96);color:white;padding:24px 4vw 22px}
+    .toprow{display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:1440px;margin:auto}
+    .brand{font-size:12px;letter-spacing:2px;font-weight:800;opacity:.85}.title{font-size:clamp(22px,3vw,34px);font-weight:800;margin:8px 0 5px}.subtitle{font-size:13px;opacity:.8}
+    .live{border:1px solid #ffffff55;border-radius:30px;padding:9px 13px;font-size:12px;white-space:nowrap}
+    main{max-width:1440px;margin:22px auto;padding:0 4vw 40px}
+    .toolbar{display:flex;flex-wrap:wrap;align-items:end;gap:12px;background:white;border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:18px;box-shadow:0 5px 18px #1232}
+    .field{display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--muted);font-weight:700}
+    input,select,button{height:38px;border:1px solid #d6e0eb;border-radius:8px;padding:0 10px;background:white;color:var(--ink);font-size:13px}
+    button{background:var(--blue);color:white;border:0;padding:0 17px;font-weight:700;cursor:pointer}
+    button.secondary{background:#eaf2f8;color:var(--navy)}button:hover{filter:brightness(.96)}
+    .status{margin-left:auto;color:var(--muted);font-size:12px;align-self:center}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+    .kpi{background:white;border:1px solid var(--line);border-radius:14px;padding:17px 18px;box-shadow:0 5px 18px #1231;min-height:108px;position:relative;overflow:hidden}
+    .kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue)}
+    .kpi:nth-child(3):before{background:var(--yellow)}.kpi:nth-child(6):before{background:#36a37a}
+    .klabel{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.6px;text-transform:uppercase}
+    .kvalue{font-size:clamp(22px,2.2vw,30px);font-weight:800;color:var(--navy);margin-top:12px}
+    .unit{font-size:11px;color:var(--muted);margin-top:3px}
+    .charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+    .panel{background:white;border:1px solid var(--line);border-radius:14px;padding:17px;box-shadow:0 5px 18px #1231;min-width:0}
+    .panel h3{margin:0;font-size:14px;color:var(--navy)}.desc{font-size:11px;color:var(--muted);margin:5px 0 10px}
+    .chart{height:300px;width:100%}
+    .foot{color:var(--muted);font-size:11px;line-height:1.6;margin-top:16px;padding:12px 3px}
+    .loading{opacity:.55;pointer-events:none}.error{background:#fff0f0;color:#9e2525;padding:12px 14px;border-radius:9px;margin-bottom:14px;display:none;font-size:13px}
+    @media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.charts{grid-template-columns:1fr}.toprow{align-items:flex-start;flex-direction:column}}
+    @media(max-width:520px){main{padding:0 12px 30px}.grid{gap:9px}.kpi{padding:13px;min-height:94px}.kvalue{font-size:22px}.toolbar{gap:9px}.field{width:calc(50% - 6px)}.field input,.field select{width:100%}.status{width:100%;margin:0}}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="toprow">
+      <div>
+        <div class="brand">BLUE BIRD • DATA ANALYTICS</div>
+        <div class="title">Fleet Optimization & eVoucher Monitoring</div>
+        <div class="subtitle">Executive performance dashboard · October–December 2023</div>
+      </div>
+      <div class="live">● Connected to Google Sheets</div>
+    </div>
+  </header>
+  <main id="app">
+    <section class="toolbar">
+      <label class="field">START DATE<input id="startDate" type="date" value="2023-10-01"></label>
+      <label class="field">END DATE<input id="endDate" type="date" value="2023-12-29"></label>
+      <label class="field">POOL<select id="pool"><option value="ALL">All Pools</option></select></label>
+      <label class="field">DEMAND ZONE<select id="zone"><option value="ALL">All Zones</option></select></label>
+      <button onclick="applyFilters()">Apply Filters</button>
+      <button class="secondary" onclick="resetFilters()">Reset</button>
+      <div class="status" id="status">Loading dashboard data…</div>
+    </section>
+    <div class="error" id="error"></div>
+    <section class="grid">
+      <div class="kpi"><div class="klabel">Total Trips</div><div class="kvalue" id="kTrips">—</div><div class="unit">Completed trips</div></div>
+      <div class="kpi"><div class="klabel">Total Shifts</div><div class="kvalue" id="kShifts">—</div><div class="unit">Driver shifts</div></div>
+      <div class="kpi"><div class="klabel">Trips per Shift</div><div class="kvalue" id="kTps">—</div><div class="unit">Average fleet productivity</div></div>
+      <div class="kpi"><div class="klabel">Average Idle Time</div><div class="kvalue" id="kIdle">—</div><div class="unit">Minutes per shift</div></div>
+      <div class="kpi"><div class="klabel">Customer Fulfillment</div><div class="kvalue" id="kFulfill">—</div><div class="unit">Fulfilled requests / total requests</div></div>
+      <div class="kpi"><div class="klabel">Unfulfilled Requests</div><div class="kvalue" id="kUnfulfilled">—</div><div class="unit">Requests not fulfilled</div></div>
+      <div class="kpi"><div class="klabel">eVoucher Trips</div><div class="kvalue" id="kEv">—</div><div class="unit">Corporate eVoucher trips</div></div>
+      <div class="kpi"><div class="klabel">eVoucher Share</div><div class="kvalue" id="kEvShare">—</div><div class="unit">Share within filtered fleet trip records</div></div>
+    </section>
+    <section class="charts">
+      <div class="panel"><h3>Fleet Productivity by Pool</h3><div class="desc">Average completed trips per shift for the selected period and pool.</div><div id="poolChart" class="chart"></div></div>
+      <div class="panel"><h3>Customer Fulfillment by Zone</h3><div class="desc">Fulfillment percentage by pickup zone for the selected period.</div><div id="zoneChart" class="chart"></div></div>
+      <div class="panel"><h3>Driver Supply vs Customer Demand</h3><div class="desc">Hourly average driver availability and requests from the prepared period-level summary.</div><div id="hourlyChart" class="chart"></div></div>
+      <div class="panel"><h3>Corporate eVoucher Usage by Time Window</h3><div class="desc">eVoucher trips grouped by time window for the selected period and pool.</div><div id="evChart" class="chart"></div></div>
+    </section>
+    <div class="foot">
+      <b>Interpretation note:</b> Unusual eVoucher patterns are risk indicators for review, not proof of fraud.
+      Validate transactions against trip documentation, client policies, and operational records.<br>
+      Source: prepared Blue Bird analytical workbook. Dashboard filters aggregate the date-grain tables; hourly supply-demand is a period-level summary.
+    </div>
+  </main>
+<script>
+  google.charts.load('current', {'packages':['corechart','bar']});
+  let currentData = null;
+  google.charts.setOnLoadCallback(loadInitial);
+
+  function loadInitial(){
+    setBusy(true);
+    google.script.run.withSuccessHandler(data=>{
+      populateOptions(data.options);
+      render(data);
+      setBusy(false);
+    }).withFailureHandler(showError).getInitialDashboardData();
+  }
+  function applyFilters(){
+    const filters = {
+      startDate:document.getElementById('startDate').value,
+      endDate:document.getElementById('endDate').value,
+      pool:document.getElementById('pool').value,
+      zone:document.getElementById('zone').value
+    };
+    if(!filters.startDate || !filters.endDate || filters.startDate>filters.endDate){
+      showError({message:'Periksa rentang tanggal. Tanggal mulai harus sebelum atau sama dengan tanggal akhir.'});return;
+    }
+    setBusy(true);
+    google.script.run.withSuccessHandler(render).withFailureHandler(showError).getDashboardData(filters);
+  }
+  function resetFilters(){
+    document.getElementById('startDate').value='2023-10-01';
+    document.getElementById('endDate').value='2023-12-29';
+    document.getElementById('pool').value='ALL';
+    document.getElementById('zone').value='ALL';
+    applyFilters();
+  }
+  function populateOptions(o){
+    fillSelect('pool',o.pools,'All Pools');
+    fillSelect('zone',o.zones,'All Zones');
+  }
+  function fillSelect(id,values,first){
+    const el=document.getElementById(id);el.innerHTML='';
+    const all=document.createElement('option');all.value='ALL';all.textContent=first;el.appendChild(all);
+    values.forEach(v=>{const x=document.createElement('option');x.value=v;x.textContent=v;el.appendChild(x);});
+  }
+  function render(d){
+    currentData=d;
+    const k=d.kpis;
+    text('kTrips',fmt(k.trips));text('kShifts',fmt(k.shifts));text('kTps',k.tripPerShift.toFixed(2));
+    text('kIdle',fmt(k.idleMinutes)+' min');text('kFulfill',k.fulfillment.toFixed(1)+'%');
+    text('kUnfulfilled',fmt(k.unfulfilled));text('kEv',fmt(k.evoucherTrips));text('kEvShare',k.evoucherShare.toFixed(1)+'%');
+    text('status',`Showing ${d.period.start} to ${d.period.end} · ${d.meta.fleetRows} fleet rows`);
+    drawPool(d.charts.pool);drawZone(d.charts.zone);drawHourly(d.charts.hourly);drawEv(d.charts.evoucher);
+    document.getElementById('error').style.display='none';
+    setBusy(false);
+  }
+  function drawPool(rows){
+    const a=[['Pool','Trips / Shift']];rows.forEach(x=>a.push([x.label,x.value]));
+    const dt=google.visualization.arrayToDataTable(a);
+    const c=new google.visualization.BarChart(document.getElementById('poolChart'));
+    c.draw(dt,{legend:{position:'none'},colors:['#1f6fb2'],chartArea:{left:130,top:15,width:'72%',height:'78%'},hAxis:{title:'Trips per shift',minValue:0},fontName:'Arial'});
+  }
+  function drawZone(rows){
+    const a=[['Zone','Fulfillment',{role:'annotation'}]];rows.forEach(x=>a.push([x.label,x.value,x.value.toFixed(1)+'%']));
+    const dt=google.visualization.arrayToDataTable(a);
+    const c=new google.visualization.ColumnChart(document.getElementById('zoneChart'));
+    c.draw(dt,{legend:{position:'none'},colors:['#f2b705'],chartArea:{left:55,top:20,width:'82%',height:'70%'},vAxis:{title:'Fulfillment (%)',minValue:0,maxValue:100},annotations:{alwaysOutside:true},fontName:'Arial'});
+  }
+  function drawHourly(rows){
+    const a=[['Hour','Active Drivers','Requests / Day']];rows.forEach(x=>a.push([x.hour,x.drivers,x.requests]));
+    const dt=google.visualization.arrayToDataTable(a);
+    const c=new google.visualization.LineChart(document.getElementById('hourlyChart'));
+    c.draw(dt,{colors:['#1f6fb2','#d64545'],lineWidth:3,pointSize:3,legend:{position:'bottom'},chartArea:{left:60,top:15,width:'82%',height:'70%'},hAxis:{title:'Hour of day'},fontName:'Arial'});
+  }
+  function drawEv(rows){
+    const a=[['Time window','eVoucher trips']];rows.forEach(x=>a.push([x.label,x.value]));
+    const dt=google.visualization.arrayToDataTable(a);
+    const c=new google.visualization.ColumnChart(document.getElementById('evChart'));
+    c.draw(dt,{legend:{position:'none'},colors:['#1f6fb2'],chartArea:{left:65,top:15,width:'82%',height:'70%'},vAxis:{title:'eVoucher trips',minValue:0},fontName:'Arial'});
+  }
+  function text(id,value){document.getElementById(id).textContent=value;}
+  function fmt(n){return Number(n||0).toLocaleString('id-ID',{maximumFractionDigits:0});}
+  function setBusy(b){document.getElementById('app').classList.toggle('loading',b);if(b)text('status','Updating dashboard…');}
+  function showError(e){
+    setBusy(false);const box=document.getElementById('error');
+    box.textContent=(e&&e.message)?e.message:String(e);box.style.display='block';text('status','Could not load data');
+  }
+  window.addEventListener('resize',()=>{if(currentData){drawPool(currentData.charts.pool);drawZone(currentData.charts.zone);drawHourly(currentData.charts.hourly);drawEv(currentData.charts.evoucher);}});
+</script>
+</body>
+</html>
